@@ -1,19 +1,17 @@
-/**
- * Header sticky con navegación entre Mercado y Mi Colección.
- * Usa glassmorphism sutil para integrarse con el fondo.
- */
 const Header = ({ view, onViewChange, collectionCount }) => {
   return (
     <header className="sticky top-0 z-30 glass border-b border-ink-100/60">
       <div className="max-w-7xl mx-auto px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Logo */}
         <div className="flex items-center gap-3">
-          <div className="relative w-10 h-10">
-            <div className="absolute inset-0 bg-gradient-to-br from-brand-500 to-brand-700 rounded-xl rotate-3" />
-            <div className="absolute inset-0 bg-gradient-to-br from-gold-300 to-gold-500 rounded-xl -rotate-3 opacity-60" />
-            <div className="relative w-full h-full rounded-xl bg-ink-900 flex items-center justify-center">
-              <span className="text-white font-display font-bold text-lg">P</span>
-            </div>
+          <div className="w-10 h-10 flex-shrink-0">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-md">
+              <path d="M 5 50 A 45 45 0 0 1 95 50 Z" fill="#E3350D" />
+              <path d="M 5 50 A 45 45 0 0 0 95 50 Z" fill="#ffffff" />
+              <circle cx="50" cy="50" r="45" fill="none" stroke="#1a1a1a" strokeWidth="5" />
+              <line x1="5" y1="50" x2="95" y2="50" stroke="#1a1a1a" strokeWidth="5" />
+              <circle cx="50" cy="50" r="14" fill="#ffffff" stroke="#1a1a1a" strokeWidth="5" />
+              <circle cx="50" cy="50" r="7" fill="#f0f0f0" stroke="#555" strokeWidth="2" />
+            </svg>
           </div>
           <div className="hidden sm:block">
             <h1 className="font-display font-bold text-ink-900 text-lg leading-tight">
@@ -25,7 +23,6 @@ const Header = ({ view, onViewChange, collectionCount }) => {
           </div>
         </div>
 
-        {/* Navegación */}
         <nav className="flex items-center gap-1 bg-ink-100/60 p-1 rounded-xl">
           <NavButton
             active={view === 'market'}

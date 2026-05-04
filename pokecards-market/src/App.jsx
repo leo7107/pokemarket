@@ -13,8 +13,9 @@ const PAYPAL_CLIENT_ID = 'AU7xusflSmwCFItw8dISYoghFHnCQfPSfjbXjpD_i7V9o0f8dY0Xx6
 
 function App() {
   const {
-    cards, loading, loadingMore, error, reload, loadMore, hasMore, total,
-    typeFilter, changeTypeFilter,
+    cards, searchResults, loading, loadingMore, searching, error,
+    reload, loadMore, hasMore, total,
+    typeFilter, changeTypeFilter, handleSearch,
   } = usePokemonCards()
   const { purchased, addPurchase, isPurchased, clearAll } = usePurchasedCards()
   const [view, setView] = useState('market')
@@ -26,7 +27,7 @@ function App() {
     setSelectedCard(card)
   }
 
-  const handlePurchaseSuccess = (card, paypalDetails) => {
+  const handlePurchaseSuccess = (card) => {
     addPurchase(card)
     setSelectedCard(null)
     setToast({
@@ -61,8 +62,10 @@ function App() {
               <Hero totalCards={total} ownedCount={purchased.length} loadedCount={cards.length} />
               <CardGrid
                 cards={cards}
+                searchResults={searchResults}
                 loading={loading}
                 loadingMore={loadingMore}
+                searching={searching}
                 error={error}
                 isPurchased={isPurchased}
                 onCardSelect={handleCardSelect}
@@ -72,6 +75,7 @@ function App() {
                 total={total}
                 typeFilter={typeFilter}
                 onTypeFilterChange={changeTypeFilter}
+                onSearch={handleSearch}
               />
             </>
           )}

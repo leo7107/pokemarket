@@ -1,23 +1,27 @@
-import { useState, useEffect, useCallback } from 'react'
-import { fetchPokemonPage, fetchPokemonByType } from '../utils/api'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { fetchPokemonPage, fetchPokemonByType, searchPokemonByName } from '../utils/api'
 
 const PAGE_SIZE = 40
 
 export const usePokemonCards = () => {
   const [cards, setCards] = useState([])
+  const [searchResults, setSearchResults] = useState(null)
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
+  const [searching, setSearching] = useState(false)
   const [error, setError] = useState(null)
   const [offset, setOffset] = useState(0)
   const [total, setTotal] = useState(0)
   const [typeFilter, setTypeFilter] = useState('all')
   const hasMore = cards.length < total
+  const searchTimer = useRef(null)
 
   const loadInitial = useCallback(async (type = 'all') => {
     try {
       setLoading(true)
       setError(null)
       setCards([])
+      setSearchResults(null)
       setOffset(0)
 
       if (type === 'all') {
@@ -61,6 +65,7 @@ export const usePokemonCards = () => {
 
   const changeTypeFilter = useCallback((type) => {
     setTypeFilter(type)
+    setSearchResults(null)
     loadInitial(type)
   }, [loadInitial])
 
@@ -68,12 +73,36 @@ export const usePokemonCards = () => {
     loadInitial(typeFilter)
   }, [loadInitial, typeFilter])
 
+  // Búsqueda con debounce de 500ms
+  const handleSearch = useCallback((query) => {
+    if (searchTimer.current) clearTimeout(searchTimer.current)
+
+    if (!query.trim()) {
+      setSearchResults(null)
+      return
+    }
+
+    searchTimer.current = setTimeout(async () => {
+      setSearching(true)
+      try {
+        const result = await searchPokemonByName(query)
+        setSearchResults(result ? [result] : [])
+      } catch {
+        setSearchResults([])
+      } finally {
+        setSearching(false)
+      }
+    }, 500)
+  }, [])
+
   useEffect(() => { loadInitial('all') }, [loadInitial])
 
   return {
     cards,
+    searchResults,
     loading,
     loadingMore,
+    searching,
     error,
     reload,
     loadMore,
@@ -81,6 +110,7 @@ export const usePokemonCards = () => {
     total,
     typeFilter,
     changeTypeFilter,
+    handleSearch,
   }
 }
 

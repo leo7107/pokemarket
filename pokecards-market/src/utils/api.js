@@ -93,10 +93,21 @@ export const fetchPokemonCards = async (count = 40) => {
   return cards
 }
 
+// Busca un Pokémon por nombre o número directamente en la API
+export const searchPokemonByName = async (query) => {
+  const q = query.trim().toLowerCase()
+  if (!q) return null
+  try {
+    const res = await axios.get(`${POKEAPI_BASE}/pokemon/${q}`)
+    return transformPokemon(res.data)
+  } catch {
+    return null
+  }
+}
+
 // Carga todos los Pokémon de un tipo específico directamente desde la API
 export const fetchPokemonByType = async (type, offset = 0, limit = 40) => {
   const typeRes = await axios.get(`${POKEAPI_BASE}/type/${type}`)
-  // Filtramos formas especiales con IDs muy altos
   const allEntries = typeRes.data.pokemon
     .map(p => p.pokemon)
     .filter(p => {

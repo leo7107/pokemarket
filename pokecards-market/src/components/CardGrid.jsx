@@ -23,20 +23,25 @@ const TYPE_CHIP_COLORS = {
 }
 
 const CardGrid = ({
-  cards, loading, loadingMore, error, isPurchased, onCardSelect, onReload,
-  loadMore, hasMore, total,
-  typeFilter, onTypeFilterChange,
+  cards, searchResults, loading, loadingMore, searching, error,
+  isPurchased, onCardSelect, onReload, loadMore, hasMore, total,
+  typeFilter, onTypeFilterChange, onSearch,
 }) => {
   const [search, setSearch] = useState('')
   const [rarityFilter, setRarityFilter] = useState('all')
   const [sort, setSort] = useState('default')
 
+  const handleSearchInput = (value) => {
+    setSearch(value)
+    onSearch(value)
+  }
+
+  const isSearching = search.trim().length > 0
+  const displayCards = isSearching ? (searchResults ?? []) : cards
+
   const filtered = useMemo(() => {
+    if (isSearching) return displayCards
     let result = [...cards]
-    if (search.trim()) {
-      const q = search.toLowerCase()
-      result = result.filter(c => c.name.toLowerCase().includes(q) || String(c.id).includes(q))
-    }
     if (rarityFilter !== 'all') result = result.filter(c => c.rarity.key === rarityFilter)
     if (sort === 'price-asc')   result.sort((a, b) => a.price - b.price)
     if (sort === 'price-desc')  result.sort((a, b) => b.price - a.price)
@@ -44,17 +49,19 @@ const CardGrid = ({
     if (sort === 'id')          result.sort((a, b) => a.id - b.id)
     if (sort === 'stats')       result.sort((a, b) => b.statsTotal - a.statsTotal)
     return result
-  }, [cards, search, rarityFilter, sort])
+  }, [cards, displayCards, isSearching, rarityFilter, sort])
 
   const handleTypeChange = (type) => {
     setSearch('')
     setRarityFilter('all')
+    onSearch('')
     onTypeFilterChange(type)
   }
 
   const clearAllFilters = () => {
     setSearch('')
     setRarityFilter('all')
+    onSearch('')
     onTypeFilterChange('all')
   }
 
@@ -74,7 +81,9 @@ const CardGrid = ({
           <p className="text-sm text-ink-500 mt-1">
             {loading
               ? 'Cargando...'
-              : `${filtered.length} mostradas · ${cards.length} cargadas · ${total.toLocaleString()} totales`
+              : isSearching
+                ? searching ? 'Buscando...' : `${filtered.length} resultado${filtered.length !== 1 ? 's' : ''} encontrado${filtered.length !== 1 ? 's' : ''}`
+                : `${filtered.length} mostradas · ${cards.length} cargadas · ${total.toLocaleString()} totales`
             }
           </p>
         </div>
@@ -82,49 +91,61 @@ const CardGrid = ({
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
-          <input type="text" placeholder="Nombre o #número..." value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-white border border-ink-200 rounded-xl text-sm placeholder:text-ink-400 focus:ring-2 focus:ring-brand-300 outline-none shadow-soft" />
+          <input
+            type="text"
+            placeholder="Nombre o #número..."
+            value={search}
+            onChange={(e) => handleSearchInput(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-ink-200 rounded-xl text-sm placeholder:text-ink-400 focus:ring-2 focus:ring-brand-300 outline-none shadow-soft"
+          />
+          {searching && (
+            <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-500 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+          )}
         </div>
       </div>
 
-      <div className="bg-white border border-ink-100 rounded-2xl p-3 mb-6 shadow-soft space-y-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-ink-400">Rareza</span>
-          {['all', ...RARITY_TIERS.map(t => t.key)].map(key => (
-            <button key={key} onClick={() => setRarityFilter(key)}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition ${rarityFilter === key ? 'bg-ink-900 text-white' : 'bg-ink-50 text-ink-600 hover:bg-ink-100'}`}>
-              {key === 'all' ? 'Todas' : RARITY_TIERS.find(t => t.key === key)?.label}
+      {!isSearching && (
+        <div className="bg-white border border-ink-100 rounded-2xl p-3 mb-6 shadow-soft space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-ink-400">Rareza</span>
+            {['all', ...RARITY_TIERS.map(t => t.key)].map(key => (
+              <button key={key} onClick={() => setRarityFilter(key)}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition ${rarityFilter === key ? 'bg-ink-900 text-white' : 'bg-ink-50 text-ink-600 hover:bg-ink-100'}`}>
+                {key === 'all' ? 'Todas' : RARITY_TIERS.find(t => t.key === key)?.label}
+              </button>
+            ))}
+            <div className="ml-auto">
+              <select value={sort} onChange={(e) => setSort(e.target.value)}
+                className="px-3 py-1.5 bg-ink-50 border border-ink-100 rounded-lg text-xs font-medium outline-none cursor-pointer">
+                <option value="default">Por defecto</option>
+                <option value="id">Nº Pokédex</option>
+                <option value="stats">Más fuertes</option>
+                <option value="price-asc">Precio ↑</option>
+                <option value="price-desc">Precio ↓</option>
+                <option value="name">Nombre A–Z</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-ink-400 self-center">Tipo</span>
+            <button onClick={() => handleTypeChange('all')}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition ${typeFilter === 'all' ? 'bg-ink-900 text-white border-ink-900' : 'bg-ink-50 text-ink-600 border-ink-100 hover:bg-ink-100'}`}>
+              Todos
             </button>
-          ))}
-          <div className="ml-auto">
-            <select value={sort} onChange={(e) => setSort(e.target.value)}
-              className="px-3 py-1.5 bg-ink-50 border border-ink-100 rounded-lg text-xs font-medium outline-none cursor-pointer">
-              <option value="default">Por defecto</option>
-              <option value="id">Nº Pokédex</option>
-              <option value="stats">Más fuertes</option>
-              <option value="price-asc">Precio ↑</option>
-              <option value="price-desc">Precio ↓</option>
-              <option value="name">Nombre A–Z</option>
-            </select>
+            {TYPES_ES.map(([key, label]) => (
+              <button key={key} onClick={() => handleTypeChange(key)}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition ${TYPE_CHIP_COLORS[key]} ${typeFilter === key ? 'ring-1 ring-offset-1 ring-current opacity-100' : 'opacity-60 hover:opacity-100'}`}>
+                {label}
+              </button>
+            ))}
           </div>
         </div>
-        <div className="flex flex-wrap gap-1.5">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-ink-400 self-center">Tipo</span>
-          <button onClick={() => handleTypeChange('all')}
-            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition ${typeFilter === 'all' ? 'bg-ink-900 text-white border-ink-900' : 'bg-ink-50 text-ink-600 border-ink-100 hover:bg-ink-100'}`}>
-            Todos
-          </button>
-          {TYPES_ES.map(([key, label]) => (
-            <button key={key} onClick={() => handleTypeChange(key)}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition ${TYPE_CHIP_COLORS[key]} ${typeFilter === key ? 'ring-1 ring-offset-1 ring-current opacity-100' : 'opacity-60 hover:opacity-100'}`}>
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
+      )}
 
-      {loading ? (
+      {loading || (isSearching && searching && searchResults === null) ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
           {Array.from({ length: 18 }).map((_, i) => (
             <div key={i} className="rounded-2xl bg-gradient-to-b from-slate-200 to-slate-100 animate-pulse" style={{ minHeight: '340px' }} />
@@ -132,8 +153,13 @@ const CardGrid = ({
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-20">
-          <p className="text-4xl mb-3">🔍</p>
-          <p className="font-bold text-ink-700">Sin resultados</p>
+          <p className="text-4xl mb-3">{isSearching ? '😕' : '🔍'}</p>
+          <p className="font-bold text-ink-700">
+            {isSearching ? `No se encontró "${search}"` : 'Sin resultados'}
+          </p>
+          {isSearching && (
+            <p className="text-sm text-ink-500 mt-1">Intenta con el nombre en inglés, ej: "greninja", "charizard"</p>
+          )}
           <button onClick={clearAllFilters}
             className="mt-3 px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-semibold hover:bg-brand-700 transition">
             Limpiar filtros
@@ -147,7 +173,7 @@ const CardGrid = ({
             ))}
           </div>
 
-          {hasMore && !search && rarityFilter === 'all' && (
+          {!isSearching && hasMore && rarityFilter === 'all' && (
             <div className="mt-10 flex flex-col items-center gap-3">
               <p className="text-sm text-ink-500">{cards.length.toLocaleString()} de {total.toLocaleString()} cargados</p>
               <div className="w-64 h-1.5 bg-ink-100 rounded-full overflow-hidden">
