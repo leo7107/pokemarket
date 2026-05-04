@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import PokemonCard from './PokemonCard'
 import { RARITY_TIERS } from '../utils/api'
 
@@ -23,37 +23,63 @@ const TYPE_CHIP_COLORS = {
 }
 
 const CardGrid = ({
-  cards, searchResults, loading, loadingMore, searching, error,
+  cards, searchResults, suggestions = [], loading, loadingMore, searching, error,
   isPurchased, onCardSelect, onReload, loadMore, hasMore, total,
-  typeFilter, onTypeFilterChange, onSearch,
+  typeFilter, onTypeFilterChange, onSearch, onSelectSuggestion,
 }) => {
   const [search, setSearch] = useState('')
   const [rarityFilter, setRarityFilter] = useState('all')
   const [sort, setSort] = useState('default')
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const searchRef = useRef(null)
+
+  // Cierra sugerencias al hacer clic fuera
+  useEffect(() => {
+    const handler = (e) => {
+      if (searchRef.current && !searchRef.current.contains(e.target)) {
+        setShowSuggestions(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
 
   const handleSearchInput = (value) => {
     setSearch(value)
+    setShowSuggestions(true)
     onSearch(value)
   }
 
+  const handleSelectSuggestion = (name) => {
+    setSearch(name)
+    setShowSuggestions(false)
+    onSelectSuggestion(name)
+  }
+
+  const clearSearch = () => {
+    setSearch('')
+    setShowSuggestions(false)
+    onSearch('')
+  }
+
   const isSearching = search.trim().length > 0
-  const displayCards = isSearching ? (searchResults ?? []) : cards
 
   const filtered = useMemo(() => {
-    if (isSearching) return displayCards
+    if (isSearching) return searchResults ?? []
     let result = [...cards]
     if (rarityFilter !== 'all') result = result.filter(c => c.rarity.key === rarityFilter)
-    if (sort === 'price-asc')   result.sort((a, b) => a.price - b.price)
-    if (sort === 'price-desc')  result.sort((a, b) => b.price - a.price)
-    if (sort === 'name')        result.sort((a, b) => a.name.localeCompare(b.name))
-    if (sort === 'id')          result.sort((a, b) => a.id - b.id)
-    if (sort === 'stats')       result.sort((a, b) => b.statsTotal - a.statsTotal)
+    if (sort === 'price-asc')  result.sort((a, b) => a.price - b.price)
+    if (sort === 'price-desc') result.sort((a, b) => b.price - a.price)
+    if (sort === 'name')       result.sort((a, b) => a.name.localeCompare(b.name))
+    if (sort === 'id')         result.sort((a, b) => a.id - b.id)
+    if (sort === 'stats')      result.sort((a, b) => b.statsTotal - a.statsTotal)
     return result
-  }, [cards, displayCards, isSearching, rarityFilter, sort])
+  }, [cards, searchResults, isSearching, rarityFilter, sort])
 
   const handleTypeChange = (type) => {
     setSearch('')
     setRarityFilter('all')
+    setShowSuggestions(false)
     onSearch('')
     onTypeFilterChange(type)
   }
@@ -61,6 +87,7 @@ const CardGrid = ({
   const clearAllFilters = () => {
     setSearch('')
     setRarityFilter('all')
+    setShowSuggestions(false)
     onSearch('')
     onTypeFilterChange('all')
   }
@@ -72,6 +99,9 @@ const CardGrid = ({
     </div>
   )
 
+  const showSkeleton = loading && !isSearching
+  const showSearchSpinner = isSearching && searching && searchResults === null
+
   return (
     <section id="market" className="scroll-mt-20">
 
@@ -79,7 +109,7 @@ const CardGrid = ({
         <div>
           <h2 className="font-display font-black text-2xl lg:text-3xl text-ink-900">Mercado de cartas</h2>
           <p className="text-sm text-ink-500 mt-1">
-            {loading
+            {showSkeleton
               ? 'Cargando...'
               : isSearching
                 ? searching ? 'Buscando...' : `${filtered.length} resultado${filtered.length !== 1 ? 's' : ''} encontrado${filtered.length !== 1 ? 's' : ''}`
@@ -87,22 +117,55 @@ const CardGrid = ({
             }
           </p>
         </div>
-        <div className="relative w-full sm:w-72">
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+
+        {/* Input con dropdown de sugerencias */}
+        <div className="relative w-full sm:w-72" ref={searchRef}>
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400 z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <input
             type="text"
-            placeholder="Nombre o #número..."
+            placeholder="Buscar Pokémon (ej: greni, 658)..."
             value={search}
             onChange={(e) => handleSearchInput(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-white border border-ink-200 rounded-xl text-sm placeholder:text-ink-400 focus:ring-2 focus:ring-brand-300 outline-none shadow-soft"
+            onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+            className="w-full pl-10 pr-10 py-2.5 bg-white border border-ink-200 rounded-xl text-sm placeholder:text-ink-400 focus:ring-2 focus:ring-brand-300 outline-none shadow-soft"
           />
           {searching && (
             <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-500 animate-spin" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
+          )}
+          {search && !searching && (
+            <button onClick={clearSearch} className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400 hover:text-ink-700 transition">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          )}
+
+          {/* Dropdown de sugerencias */}
+          {showSuggestions && suggestions.length > 0 && (
+            <ul className="absolute z-50 top-full mt-1 w-full bg-white border border-ink-200 rounded-xl shadow-lg overflow-hidden">
+              {suggestions.map((s) => {
+                const id = parseInt(s.url.split('/').filter(Boolean).pop())
+                return (
+                  <li key={s.name}>
+                    <button
+                      onMouseDown={(e) => { e.preventDefault(); handleSelectSuggestion(s.name) }}
+                      className="w-full flex items-center gap-3 px-4 py-2 hover:bg-brand-50 transition text-left"
+                    >
+                      <img
+                        src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`}
+                        alt={s.name}
+                        className="w-8 h-8 object-contain"
+                      />
+                      <span className="capitalize text-sm font-medium text-ink-800">{s.name}</span>
+                      <span className="ml-auto text-xs text-ink-400">#{String(id).padStart(3, '0')}</span>
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
           )}
         </div>
       </div>
@@ -145,24 +208,26 @@ const CardGrid = ({
         </div>
       )}
 
-      {loading || (isSearching && searching && searchResults === null) ? (
+      {showSkeleton || showSearchSpinner ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-          {Array.from({ length: 18 }).map((_, i) => (
+          {Array.from({ length: showSearchSpinner ? 1 : 18 }).map((_, i) => (
             <div key={i} className="rounded-2xl bg-gradient-to-b from-slate-200 to-slate-100 animate-pulse" style={{ minHeight: '340px' }} />
           ))}
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-20">
-          <p className="text-4xl mb-3">{isSearching ? '😕' : '🔍'}</p>
+          <p className="text-4xl mb-3">😕</p>
           <p className="font-bold text-ink-700">
             {isSearching ? `No se encontró "${search}"` : 'Sin resultados'}
           </p>
           {isSearching && (
-            <p className="text-sm text-ink-500 mt-1">Intenta con el nombre en inglés, ej: "greninja", "charizard"</p>
+            <p className="text-sm text-ink-500 mt-1">
+              Selecciona una sugerencia del dropdown o escribe el nombre completo en inglés
+            </p>
           )}
           <button onClick={clearAllFilters}
             className="mt-3 px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-semibold hover:bg-brand-700 transition">
-            Limpiar filtros
+            Limpiar búsqueda
           </button>
         </div>
       ) : (

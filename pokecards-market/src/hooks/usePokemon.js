@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { fetchPokemonPage, fetchPokemonByType, searchPokemonByName } from '../utils/api'
+import { fetchPokemonPage, fetchPokemonByType, searchPokemonByName, searchPokemonPartial } from '../utils/api'
 
 const PAGE_SIZE = 40
 
 export const usePokemonCards = () => {
   const [cards, setCards] = useState([])
   const [searchResults, setSearchResults] = useState(null)
+  const [suggestions, setSuggestions] = useState([]) // ← nuevo
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [searching, setSearching] = useState(false)
@@ -66,6 +67,7 @@ export const usePokemonCards = () => {
   const changeTypeFilter = useCallback((type) => {
     setTypeFilter(type)
     setSearchResults(null)
+    setSuggestions([])
     loadInitial(type)
   }, [loadInitial])
 
@@ -73,26 +75,42 @@ export const usePokemonCards = () => {
     loadInitial(typeFilter)
   }, [loadInitial, typeFilter])
 
-  // Búsqueda con debounce de 500ms
+  // Búsqueda parcial: muestra sugerencias mientras escribe
   const handleSearch = useCallback((query) => {
     if (searchTimer.current) clearTimeout(searchTimer.current)
 
     if (!query.trim()) {
       setSearchResults(null)
+      setSuggestions([])
       return
     }
 
     searchTimer.current = setTimeout(async () => {
       setSearching(true)
       try {
-        const result = await searchPokemonByName(query)
-        setSearchResults(result ? [result] : [])
+        const matches = await searchPokemonPartial(query)
+        setSuggestions(matches) // lista de { name, url }
+        setSearchResults(null)  // limpia resultados anteriores hasta que elijan
       } catch {
-        setSearchResults([])
+        setSuggestions([])
       } finally {
         setSearching(false)
       }
-    }, 500)
+    }, 300)
+  }, [])
+
+  // Cuando el usuario elige una sugerencia, trae los datos completos
+  const selectSuggestion = useCallback(async (name) => {
+    setSuggestions([])
+    setSearching(true)
+    try {
+      const result = await searchPokemonByName(name)
+      setSearchResults(result ? [result] : [])
+    } catch {
+      setSearchResults([])
+    } finally {
+      setSearching(false)
+    }
   }, [])
 
   useEffect(() => { loadInitial('all') }, [loadInitial])
@@ -100,6 +118,7 @@ export const usePokemonCards = () => {
   return {
     cards,
     searchResults,
+    suggestions,
     loading,
     loadingMore,
     searching,
@@ -111,6 +130,7 @@ export const usePokemonCards = () => {
     typeFilter,
     changeTypeFilter,
     handleSearch,
+    selectSuggestion,
   }
 }
 

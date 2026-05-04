@@ -1,46 +1,128 @@
-# PokéCards Market
+# 🃏 PokéCards Market
 
-Aplicación web interactiva donde los usuarios pueden explorar, visualizar y comprar cartas digitales coleccionables generadas a partir de la PokéAPI. Las compras se procesan mediante la API de PayPal Sandbox.
+Marketplace de cartas Pokémon digitales con pagos via PayPal Sandbox.  
+Construido con **React + Vite + Tailwind CSS**.
 
-## Stack tecnológico
+🔗 **Demo en vivo:** [PokéCards Market · Colección digital premium](https://poke-market-git-main-leo7107s-projects.vercel.app/)
 
-- **Vite + React 18** — framework SPA
-- **Tailwind CSS 3** — sistema de diseño
-- **@paypal/react-paypal-js** — integración con PayPal Sandbox
-- **Axios** — consumo de PokéAPI
-- **localStorage** — persistencia del estado de compras
+---
 
-## Cumplimiento de la rúbrica (10/10)
+## 🚀 Instalación y ejecución local
 
-| Criterio                   | Implementación                                                                 |
-|----------------------------|--------------------------------------------------------------------------------|
-| Consumo de API             | `src/utils/api.js` carga 30 cartas desde la PokéAPI en paralelo                |
-| Interfaz de usuario        | Diseño responsive con paleta sobria; grid adaptativo de 1→4 columnas           |
-| Integración de pagos       | `PurchaseModal.jsx` usa `<PayPalButtons>` con `createOrder` y `onApprove`      |
-| Lógica de negocio          | Validación `details.status === 'COMPLETED'`; mensajes diferenciados            |
-| Funcionalidades adicionales| Vista "Mi Colección", filtros por rareza, búsqueda, ordenamiento, persistencia |
+### Requisitos
+- Node.js 18+
+- npm 9+
 
-## Instalación rápida
+### Pasos
 
-```powershell
+```bash
+# 1. Clonar el repositorio
+git clone https://github.com/Leo7107/PokeMarket.git
+cd PokeMarket
+
+# 2. Instalar dependencias del frontend
 npm install
+
+# 3. Iniciar el servidor de desarrollo
 npm run dev
 ```
 
-La aplicación abre en `http://localhost:5173`.
+La app estará disponible en **http://localhost:5173**
 
-## Configurar PayPal Sandbox (opcional pero recomendado)
+### Servidor PayPal (para pagos en local)
 
-1. Crea una cuenta en https://developer.paypal.com/
-2. Ve a **Apps & Credentials** → **Sandbox** → **Create App**
-3. Copia el **Client ID**
-4. Reemplaza el valor de `PAYPAL_CLIENT_ID` en `src/App.jsx`
+```bash
+# En otra terminal, entrar a la carpeta del servidor
+cd server
 
-## Credenciales de prueba para el comprador (Sandbox)
+# Instalar dependencias
+npm install
 
-Cuando se abra el popup de PayPal, inicia sesión con tu cuenta sandbox personal:
+# Iniciar el servidor
+node index.js
+```
 
-- Usuario: `sb-xxxxxx@personal.example.com`
-- Contraseña: `test1234`
+El servidor corre en **http://localhost:3001**
 
-Estas se obtienen en **Sandbox → Accounts** del dashboard de PayPal.
+---
+
+## 💳 Credenciales de prueba — PayPal Sandbox
+
+Usa estas credenciales para simular una compra. **No se realizan cobros reales.**
+
+### Cuenta compradora
+
+| Campo | Valor |
+|-------|-------|
+| **Email** | `sb-d9hhx50802568@personal.example.com` |
+| **Contraseña** | `{u&j3[V6` |
+
+### Cómo hacer una compra de prueba
+
+1. Abre la app en `http://localhost:5173`
+2. Haz clic en cualquier carta Pokémon
+3. En el modal, haz clic en el botón amarillo de **PayPal**
+4. Inicia sesión con las credenciales de arriba
+5. Confirma el pago
+6. ✅ La carta se desbloquea y aparece en **Mi Colección**
+
+---
+
+## 🔍 Cómo usar el buscador
+
+El buscador encuentra cualquier Pokémon **sin necesidad de cargar páginas**:
+
+- Escribe parte del nombre en inglés: `greni` → sugerencias con imagen
+- Escribe el número de Pokédex: `658` → Greninja directo
+- Haz clic en una sugerencia del dropdown para cargar la carta
+
+---
+
+## 🗂 Estructura del proyecto
+
+```
+PokeMarket/
+├── server/
+│   ├── index.js          # Servidor Express — maneja pagos PayPal
+│   └── package.json
+├── src/
+│   ├── components/
+│   │   ├── CardGrid.jsx      # Grid + buscador con autocompletado
+│   │   ├── PokemonCard.jsx   # Carta individual
+│   │   ├── PurchaseModal.jsx # Modal de pago con PayPal
+│   │   ├── MyCollection.jsx  # Colección del usuario
+│   │   ├── Header.jsx
+│   │   ├── Hero.jsx
+│   │   ├── Footer.jsx
+│   │   └── Toast.jsx
+│   ├── hooks/
+│   │   └── usePokemon.js     # Lógica de carga, búsqueda y paginación
+│   ├── utils/
+│   │   ├── api.js            # Llamadas a PokéAPI
+│   │   └── paypal.js         # Llamadas al servidor de pagos
+│   ├── App.jsx
+│   └── main.jsx
+├── index.html
+├── package.json
+└── vite.config.js
+```
+
+---
+
+## ☁️ Despliegue en Vercel
+
+El proyecto está desplegado en Vercel con deploy automático desde la rama `main`.
+
+🔗 **URL de producción:** [https://poke-market-git-main-leo7107s-projects.vercel.app/](https://poke-market-git-main-leo7107s-projects.vercel.app/)
+
+Cada vez que hagas `git push origin main`, Vercel detecta el cambio y redespliega automáticamente en menos de un minuto.
+
+---
+
+## 📝 Scripts disponibles
+
+```bash
+npm run dev      # Servidor de desarrollo
+npm run build    # Build de producción
+npm run preview  # Vista previa del build
+```

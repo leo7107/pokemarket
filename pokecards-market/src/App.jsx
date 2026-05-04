@@ -13,9 +13,9 @@ const PAYPAL_CLIENT_ID = 'AU7xusflSmwCFItw8dISYoghFHnCQfPSfjbXjpD_i7V9o0f8dY0Xx6
 
 function App() {
   const {
-    cards, searchResults, loading, loadingMore, searching, error,
+    cards, searchResults, suggestions, loading, loadingMore, searching, error,
     reload, loadMore, hasMore, total,
-    typeFilter, changeTypeFilter, handleSearch,
+    typeFilter, changeTypeFilter, handleSearch, selectSuggestion,
   } = usePokemonCards()
   const { purchased, addPurchase, isPurchased, clearAll } = usePurchasedCards()
   const [view, setView] = useState('market')
@@ -63,6 +63,7 @@ function App() {
               <CardGrid
                 cards={cards}
                 searchResults={searchResults}
+                suggestions={suggestions}
                 loading={loading}
                 loadingMore={loadingMore}
                 searching={searching}
@@ -76,6 +77,7 @@ function App() {
                 typeFilter={typeFilter}
                 onTypeFilterChange={changeTypeFilter}
                 onSearch={handleSearch}
+                onSelectSuggestion={selectSuggestion}
               />
             </>
           )}

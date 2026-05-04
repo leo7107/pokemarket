@@ -124,3 +124,24 @@ export const fetchPokemonByType = async (type, offset = 0, limit = 40) => {
 
   return { total, cards }
 }
+
+
+
+// Cache de la lista completa de nombres — se descarga una sola vez
+let allPokemonList = null
+
+export const loadAllPokemonNames = async () => {
+  if (allPokemonList) return allPokemonList
+  const res = await axios.get(`${POKEAPI_BASE}/pokemon?limit=10000`)
+  allPokemonList = res.data.results // [{ name, url }, ...]
+  return allPokemonList
+}
+
+export const searchPokemonPartial = async (query) => {
+  const q = query.trim().toLowerCase()
+  if (!q) return []
+  const list = await loadAllPokemonNames()
+  return list
+    .filter(p => p.name.includes(q))
+    .slice(0, 8) // máximo 8 sugerencias
+}
